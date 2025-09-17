@@ -19,10 +19,9 @@ class SessionRecorder {
    * @returns {boolean} - True if recording started successfully
    */
   startRecording() {
-    // Check if already recording
+    // If already recording, stop the current recording first
     if (this.active) {
-      console.log('[RECORDER] Already recording');
-      return false;
+      this.stopRecording();
     }
 
     // Generate unique session ID based on timestamp
@@ -35,7 +34,7 @@ class SessionRecorder {
       fs.mkdirSync(RECORDING.DIR, { recursive: true });
     }
 
-    // Initialize session data
+    // Initialize session data with empty steps
     this.sessionData = {
       session_id: sessionId,
       start_time: new Date().toISOString(),
@@ -62,26 +61,31 @@ class SessionRecorder {
       return false;
     }
 
-    // Update end time
+    // Update end time and write final version
     this.sessionData.end_time = new Date().toISOString();
-
-    // Write session data to file
+    
+    // Write the final session data
     try {
       fs.writeFileSync(
         this.recordingFile,
         JSON.stringify(this.sessionData, null, 2),
         'utf8'
       );
-      console.log(`[RECORDER] Saved recording to ${this.recordingFile}`);
+      console.log(`[RECORDER] Finalized recording at ${this.recordingFile}`);
     } catch (error) {
-      console.error(`[RECORDER] Error saving recording: ${error.message}`);
+      console.error(`[RECORDER] Error finalizing recording: ${error.message}`);
       return false;
     }
 
+    // Store the file path before clearing
+    const filePath = this.recordingFile;
+    
+    // Reset recorder state
     this.active = false;
     this.sessionData = null;
     this.recordingFile = null;
     
+    console.log(`[RECORDER] Session recording complete: ${filePath}`);
     return true;
   }
 
@@ -94,7 +98,7 @@ class SessionRecorder {
     if (!this.active) return;
 
     this.currentStep++;
-    this.sessionData.steps.push({
+    const step = {
       step: this.currentStep,
       timestamp: new Date().toISOString(),
       direction: 'client',
@@ -106,7 +110,13 @@ class SessionRecorder {
         payload: decodedData.payload
       },
       valid: decodedData.valid
-    });
+    };
+    
+    // Add step to in-memory collection
+    this.sessionData.steps.push(step);
+    
+    // Write updated file to disk immediately
+    this._writeSessionData();
   }
 
   /**
@@ -118,7 +128,7 @@ class SessionRecorder {
     if (!this.active) return;
 
     this.currentStep++;
-    this.sessionData.steps.push({
+    const step = {
       step: this.currentStep,
       timestamp: new Date().toISOString(),
       direction: 'server',
@@ -130,7 +140,41 @@ class SessionRecorder {
         payload: decodedData.payload
       },
       valid: decodedData.valid
-    });
+    };
+    
+    // Add step to in-memory collection
+    this.sessionData.steps.push(step);
+    
+    // Write updated file to disk immediately
+    this._writeSessionData();
+  }
+  
+  /**
+   * Private helper to write the current session data to disk
+   * Updates the file with the latest steps after each interaction
+   * @private
+   */
+  _writeSessionData() {
+    if (!this.active || !this.recordingFile) return;
+    
+    try {
+      // Update end time to current time (will be overwritten on next write)
+      this.sessionData.end_time = new Date().toISOString();
+      
+      // Write the entire session data to file
+      fs.writeFileSync(
+        this.recordingFile,
+        JSON.stringify(this.sessionData, null, 2),
+        'utf8'
+      );
+      
+      // Log every few steps to avoid console spam
+      if (this.currentStep % 2 === 0) {
+        console.log(`[RECORDER] Updated recording file with step ${this.currentStep}`);
+      }
+    } catch (error) {
+      console.error(`[RECORDER] Error updating recording file: ${error.message}`);
+    }
   }
 
   /**

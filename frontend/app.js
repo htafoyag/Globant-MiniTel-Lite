@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     clearOutput();
     overrideCodeEl.textContent = '';
     
+    // Reset state
+    isHacking = false;
+    
     // Initialize WebSocket
     connectWebSocket();
     
@@ -66,13 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('WebSocket disconnected');
       updateConnectionStatus('disconnected');
       
-      // Attempt to reconnect after delay
-      setTimeout(connectWebSocket, 3000);
+      // If we're in the middle of a hack and the connection is lost
+      if (isHacking) {
+        // Just report the error and reset the hack state
+        addMessage('Connection lost during hack sequence. Please try again.', 'error');
+        isHacking = false;
+        hackButton.disabled = false;
+      }
+      
+      // No automatic reconnection - user must click HACK again
+      // or refresh the page to reconnect
     };
     
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
       addMessage('WebSocket error. Please check if the proxy server is running.', 'error');
+      scrollOutputToBottom();
     };
   }
 
@@ -94,8 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
       case 'error':
         addMessage(data.message, 'error');
-        isHacking = false;
-        hackButton.disabled = false;
+        
+        // Reset hack state if we were hacking
+        if (isHacking) {
+          isHacking = false;
+          hackButton.disabled = false;
+        }
         break;
       
       case 'success':
@@ -103,6 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.overrideCode) {
           displayOverrideCode(data.overrideCode);
         }
+        
+        // Reset hack state
         isHacking = false;
         hackButton.disabled = false;
         break;
@@ -110,6 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
       default:
         console.warn('Unknown message type:', data.type);
     }
+    
+    // Ensure the output area is scrolled to the bottom after any message
+    scrollOutputToBottom();
   }
 
   /**
@@ -131,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Display status message if provided
     if (data.message) {
       addMessage(data.message);
+      scrollOutputToBottom();
     }
   }
 
@@ -138,10 +160,25 @@ document.addEventListener('DOMContentLoaded', () => {
    * Start the hack sequence
    */
   function startHack() {
-    if (isHacking || !ws || ws.readyState !== WebSocket.OPEN) {
+    // Check if WebSocket is available and connected
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      clearOutput();
+      addMessage('Server not connected. Please ensure the server is running.', 'error');
+      
+      // Try to establish connection if it doesn't exist or is closed
+      if (!ws || ws.readyState === WebSocket.CLOSED) {
+        addMessage('Attempting to connect to server...', 'error');
+        connectWebSocket();
+      }
       return;
     }
     
+    // Already hacking - prevent multiple attempts
+    if (isHacking) {
+      return;
+    }
+    
+    // Reset state for new hack attempt
     isHacking = true;
     hackButton.disabled = true;
     
@@ -159,6 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function toggleRecording() {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
+      // Reset the toggle to its previous state
+      recordingToggle.checked = !recordingToggle.checked;
+      
+      // Show an error message
+      addMessage('Server not connected. Cannot toggle recording.', 'error');
+      
+      // Try to establish connection if it doesn't exist or is closed
+      if (!ws || ws.readyState === WebSocket.CLOSED) {
+        addMessage('Attempting to connect to server...', 'error');
+        connectWebSocket();
+      }
       return;
     }
     
@@ -169,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
       enable: isRecording
     }));
     
-    addMessage(isRecording ? 'Session recording started' : 'Session recording stopped');
+    // Status message will come from the server
   }
 
   /**
@@ -216,5 +264,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function displayOverrideCode(code) {
     overrideCodeEl.textContent = code;
     overrideCodeContainer.style.display = 'flex';
+  }
+  
+  /**
+   * Scroll the output area to the bottom
+   * Uses a small delay to ensure content is fully rendered before scrolling
+   */
+  function scrollOutputToBottom() {
+    if (outputEl) {
+      // Immediate scroll
+      outputEl.scrollTop = outputEl.scrollHeight;
+      
+      // Add a slight delay to ensure it works even if content is still rendering
+      setTimeout(() => {
+        outputEl.scrollTop = outputEl.scrollHeight;
+      }, 10);
+    }
   }
 });

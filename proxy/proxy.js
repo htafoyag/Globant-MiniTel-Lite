@@ -103,9 +103,20 @@ function sendStatus(ws) {
  */
 function toggleRecording(ws, enable) {
   if (enable) {
+    // Start a new recording session (will stop any existing recording)
     recorder.startRecording();
+    ws.send(JSON.stringify({
+      type: 'update',
+      message: 'Started new recording session'
+    }));
   } else {
-    recorder.stopRecording();
+    // Stop current recording
+    if (recorder.stopRecording()) {
+      ws.send(JSON.stringify({
+        type: 'update',
+        message: 'Recording stopped and saved'
+      }));
+    }
   }
   sendStatus(ws);
 }
@@ -130,7 +141,22 @@ async function executeHack(ws) {
 
   try {
     // Connect to server
-    await connectToServer(ws);
+    try {
+      await connectToServer(ws);
+    } catch (connectionError) {
+      // For initial connection errors, don't retry - just report and stop
+      logger.error(`Initial connection failed: ${connectionError.message}`);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: `Connection failed: ${connectionError.message}. Please try again later.`
+      }));
+      
+      // Reset state and return early
+      overrideCode = null;
+      dumpCount = 0;
+      isConnected = false;
+      return;
+    }
     
     // Send HELLO
     ws.send(JSON.stringify({
@@ -138,60 +164,72 @@ async function executeHack(ws) {
       message: 'Sending HELLO command...'
     }));
     
-    const helloResponse = await sendCommand(ws, COMMANDS.HELLO);
-    
-    if (helloResponse.cmd !== RESPONSES.HELLO_ACK) {
-      throw new Error(`Expected HELLO_ACK, got ${helloResponse.cmdName}`);
+    try {
+      const helloResponse = await sendCommand(ws, COMMANDS.HELLO);
+      
+      if (helloResponse.cmd !== RESPONSES.HELLO_ACK) {
+        throw new Error(`Expected HELLO_ACK, got ${helloResponse.cmdName}`);
+      }
+      
+      ws.send(JSON.stringify({
+        type: 'update',
+        message: 'Authentication successful. Sending first DUMP command...'
+      }));
+      
+      // Send first DUMP
+      const firstDumpResponse = await sendCommand(ws, COMMANDS.DUMP);
+      
+      if (firstDumpResponse.cmd !== RESPONSES.DUMP_FAILED) {
+        throw new Error(`Expected DUMP_FAILED, got ${firstDumpResponse.cmdName}`);
+      }
+      
+      ws.send(JSON.stringify({
+        type: 'update',
+        message: 'First DUMP failed as expected. Sending second DUMP command...'
+      }));
+      
+      // Only for the second DUMP we want to retry if there's a connection issue
+      // as this is mid-sequence and part of the expected flow
+      const secondDumpResponse = await sendCommand(ws, COMMANDS.DUMP);
+      
+      if (secondDumpResponse.cmd !== RESPONSES.DUMP_OK) {
+        throw new Error(`Expected DUMP_OK, got ${secondDumpResponse.cmdName}`);
+      }
+      
+      // Extract override code from payload
+      overrideCode = secondDumpResponse.payload.trim();
+      
+      ws.send(JSON.stringify({
+        type: 'success',
+        message: 'Override code retrieved successfully!',
+        overrideCode
+      }));
+      
+      // Send STOP command to gracefully close connection
+      await sendCommand(ws, COMMANDS.STOP_CMD);
+    } catch (commandError) {
+      // For command errors, reset to idle state
+      logger.error(`Command sequence failed: ${commandError.message}`);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: `Hack failed: ${commandError.message}`
+      }));
+    } finally {
+      // Always close connection and update client regardless of outcome
+      closeConnection();
+      sendStatus(ws);
     }
-    
-    ws.send(JSON.stringify({
-      type: 'update',
-      message: 'Authentication successful. Sending first DUMP command...'
-    }));
-    
-    // Send first DUMP
-    const firstDumpResponse = await sendCommand(ws, COMMANDS.DUMP);
-    
-    if (firstDumpResponse.cmd !== RESPONSES.DUMP_FAILED) {
-      throw new Error(`Expected DUMP_FAILED, got ${firstDumpResponse.cmdName}`);
-    }
-    
-    ws.send(JSON.stringify({
-      type: 'update',
-      message: 'First DUMP failed as expected. Sending second DUMP command...'
-    }));
-    
-    // Send second DUMP
-    const secondDumpResponse = await sendCommand(ws, COMMANDS.DUMP);
-    
-    if (secondDumpResponse.cmd !== RESPONSES.DUMP_OK) {
-      throw new Error(`Expected DUMP_OK, got ${secondDumpResponse.cmdName}`);
-    }
-    
-    // Extract override code from payload
-    overrideCode = secondDumpResponse.payload.trim();
-    
-    ws.send(JSON.stringify({
-      type: 'success',
-      message: 'Override code retrieved successfully!',
-      overrideCode
-    }));
-    
-    // Send STOP command to gracefully close connection
-    await sendCommand(ws, COMMANDS.STOP_CMD);
-    
-    // Close connection
-    closeConnection();
-    
   } catch (error) {
-    logger.error(`Hack sequence failed: ${error.message}`);
+    // Catch any unexpected errors in the overall hack sequence
+    logger.error(`Hack sequence failed with unexpected error: ${error.message}`);
     ws.send(JSON.stringify({
       type: 'error',
-      message: `Hack failed: ${error.message}`
+      message: `Unexpected error: ${error.message}`
     }));
     
-    // Ensure connection is closed
+    // Ensure connection is closed and state is reset
     closeConnection();
+    sendStatus(ws);
   }
 }
 

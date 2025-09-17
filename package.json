@@ -14,14 +14,14 @@
   "dependencies": {
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "ws": "^8.13.0",
+    "ws": "^8.15.0",
     "terminal-kit": "^3.0.0",
-    "winston": "^3.10.0"
+    "winston": "^3.11.0"
   },
   "devDependencies": {
-    "chai": "^4.3.7",
+    "chai": "^4.4.0",
     "mocha": "^10.2.0",
-    "eslint": "^8.46.0",
-    "sinon": "^15.2.0"
+    "eslint": "^9.0.0",
+    "sinon": "^17.0.1"
   }
 }
