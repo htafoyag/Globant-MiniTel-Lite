@@ -1,0 +1,201 @@
+/* MiniTel-Lite Override Terminal Styles */
+
+:root {
+    --terminal-bg: #000;
+    --terminal-text: #33ff33;
+    --terminal-border: #444;
+    --terminal-header: #222;
+    --button-bg: #990000;
+    --button-hover: #cc0000;
+    --status-disconnected: #ff3333;
+    --status-connected: #33ff33;
+    --status-connecting: #ffcc00;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background-color: #111;
+    color: var(--terminal-text);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.terminal {
+    width: 100%;
+    max-width: 800px;
+    background-color: var(--terminal-bg);
+    border: 2px solid var(--terminal-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.terminal-header {
+    background-color: var(--terminal-header);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--terminal-border);
+}
+
+.title {
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.status-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--status-disconnected);
+}
+
+.terminal-screen {
+    height: 400px;
+    padding: 15px;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--terminal-border);
+}
+
+.screen-content {
+    line-height: 1.5;
+}
+
+.terminal-controls {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.action-button {
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 5px;
+    letter-spacing: 2px;
+    transition: background-color 0.3s;
+}
+
+.action-button:hover {
+    background-color: var(--button-hover);
+}
+
+.action-button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.recording-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toggle {
+    appearance: none;
+    width: 40px;
+    height: 20px;
+    background-color: #555;
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle:checked {
+    background-color: var(--terminal-text);
+}
+
+.toggle::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+.toggle:checked::before {
+    transform: translateX(20px);
+}
+
+.override-code-container {
+    padding: 15px;
+    border-top: 1px solid var(--terminal-border);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.override-code-label {
+    font-weight: bold;
+}
+
+.override-code {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+.intro-text {
+    text-align: center;
+    margin-top: 100px;
+}
+
+.intro-text p {
+    margin-bottom: 15px;
+}
+
+.blink {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.message {
+    margin-bottom: 10px;
+}
+
+.message.error {
+    color: var(--status-disconnected);
+}
+
+.message.success {
+    color: var(--status-connected);
+}
+
+/* Connection status colors */
+.status-disconnected {
+    background-color: var(--status-disconnected);
+}
+
+.status-connected {
+    background-color: var(--status-connected);
+}
+
+.status-connecting {
+    background-color: var(--status-connecting);
+}

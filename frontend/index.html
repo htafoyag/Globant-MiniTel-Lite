@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniTel-Lite Override Terminal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="terminal">
+        <div class="terminal-header">
+            <div class="title">MiniTel-Lite Override Terminal</div>
+            <div class="status-light" id="connection-status"></div>
+        </div>
+        
+        <div class="terminal-screen">
+            <div class="screen-content" id="output">
+                <div class="intro-text">
+                    <p>NORAD EMERGENCY OVERRIDE SYSTEM</p>
+                    <p>Agent LIGHTMAN Terminal</p>
+                    <p class="blink">READY</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="terminal-controls">
+            <button id="hack-button" class="action-button">HACK</button>
+            
+            <div class="recording-controls">
+                <input type="checkbox" id="recording-toggle" class="toggle">
+                <label for="recording-toggle">RECORD SESSION</label>
+            </div>
+        </div>
+        
+        <div class="override-code-container" id="override-code-container">
+            <div class="override-code-label">OVERRIDE CODE:</div>
+            <div class="override-code" id="override-code"></div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

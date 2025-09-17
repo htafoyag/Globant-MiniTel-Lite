@@ -1,0 +1,27 @@
+{
+  "name": "minitel-lite",
+  "version": "1.0.0",
+  "description": "MiniTel-Lite client application for retrieving override codes",
+  "main": "proxy/proxy.js",
+  "scripts": {
+    "start": "node proxy/proxy.js",
+    "test": "mocha tests/**/*.test.js proxy/tests/**/*.js",
+    "lint": "eslint --fix ."
+  },
+  "keywords": ["minitel", "tcp", "client"],
+  "author": "Agent LIGHTMAN",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "ws": "^8.13.0",
+    "terminal-kit": "^3.0.0",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "eslint": "^8.46.0",
+    "sinon": "^15.2.0"
+  }
+}
