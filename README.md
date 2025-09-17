@@ -6,6 +6,8 @@ November 26, 1983. 15:42 GMT. NORAD's central computer systems have been comprom
 
 This application allows authorized personnel to connect to the MiniTel-Lite server, authenticate using the HELLO protocol, and retrieve the emergency override codes needed to stop JOSHUA before it launches a real nuclear strike.
 
+![MiniTel-Lite Override Terminal UI](assets/demo_ui.png)
+
 ## Architecture Design
 
 The application follows a clean, layered architecture with strict separation of concerns:
@@ -160,6 +162,9 @@ minitel-lite/
 │   └── replay.js              # Session replay tool
 │
 ├── recordings/                # Stored session recordings
+│
+├── assets/                    # Static assets
+│   └── demo_ui.png            # Screenshot of the UI
 │
 ├── tests/                     # Integration tests
 │   ├── integration.test.js    # End-to-end tests
